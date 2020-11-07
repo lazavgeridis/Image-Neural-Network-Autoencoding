@@ -5,10 +5,10 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from keras import layers, losses, optimizers, metrics
+
+from keras.layers import Conv2D, MaxiPooling2D
 from sklearn.model_selection import train_test_split
 from keras.models import load_model
-
 
 
 
@@ -63,6 +63,8 @@ if __name__ == '__main__':
 
     # training data must be split into a training set and a validation set
     train_x, valid_x, train_ground, valid_ground = train_test_split(trainImages, trainImages, test_size=0.2, random_state=13)
+    if (train_x[0].all == train_ground[0].all):
+        print("same")
 
     # plot first image (just to check if everything's correct)
     # plt.imshow(train_x[0])
@@ -70,10 +72,10 @@ if __name__ == '__main__':
     # after plotting everything's is perfect!
 
     # we have to convert nparray to tensor
-    tensor = tf.convert_to_tensor(train_x[0], dtype=tf.float32)
+    # tensor = tf.convert_to_tensor(train_x[0], dtype=tf.float32)
     # then we have to reshape it in 4dims (-1, rows, cols, initial_number_of_filters (1))
-    arg = tf.reshape(tensor, [-1, rows, cols, 1])
+    # arg = tf.reshape(tensor, [-1, rows, cols, 1])
     # apply a conv2d layer
-    conv1 = tf.keras.layers.Conv2D(32, (3, 3), activation='relu', padding='same')(arg)
+    # conv1 = Conv2D(32, kernel_size = 3, activation='relu', padding='same')(arg)
     # not sure if this is correct!!
-    print(conv1)
+    # print(conv1)
