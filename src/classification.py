@@ -1,11 +1,11 @@
 from keras.layers import Conv2D, MaxPool2D, Flatten, Dense, Dropout, BatchNormalization
 from keras.models import Sequential
+from keras.utils.np_utils import to_categorical
 from os.path import exists
 from utils import *
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
-import sys
 
 
 parser = argparse.ArgumentParser()
@@ -18,31 +18,25 @@ args = parser.parse_args()
 
 # check if the file arguments exist
 if not exists(args.d):
-    print("\nFile {} does not exist!\n".format(args.d), file=sys.stderr)
-    sys.exit(-1)
+    die("\nFile \"{}\" does not exist!\n".format(args.d), -1)
 
 if not exists(args.dl):
-    print("\nFile {} does not exist!\n".format(args.dl), file=sys.stderr)
-    sys.exit(-1)
+    die("\nFile \"{}\" does not exist!\n".format(args.dl), -1)
 
 if not exists(args.t):
-    print("\nFile {} does not exist!\n".format(args.t), file=sys.stderr)
-    sys.exit(-1)
+    die("\nFile \"{}\" does not exist!\n".format(args.t), -1)
 
 if not exists(args.tl):
-    print("\nFile {} does not exist!\n".format(args.tl), file=sys.stderr)
-    sys.exit(-1)
+    die("\nFile \"{}\" does not exist!\n".format(args.tl), -1)
 
 #if not exists(args.model):
-#    print("\nFile {} does not exist!\n".format(args.model), file=sys.stderr)
-#    sys.exit(-1)
+#    die("\nFile \"{}\" does not exist!\n".format(args.model), -1)
 
 
 # read files and store the data
 trainset = dataset_reader(args.d)
 _, x_dim, y_dim = np.shape(trainset)
 trainlabels = labels_reader(args.dl)
-print(trainlabels[0])
 testset = dataset_reader(args.t)
 testset_size, _, _ = np.shape(testset)
 testlabels = labels_reader(args.tl)
@@ -59,7 +53,7 @@ trainlabels = to_categorical(trainlabels, num_classes=10) # converts each class 
 
 # CNN construction
 
-""" 1) Input Layer: 784 dimensional data
+""" 1) Input Layer: x_dim * y_dim dimensional data
     2) Layer conv1 has 32 feature maps, 5x5 each, stride = 1, TEST padding = 'valid' (default) / 'same' 
     3) Batch normalization, followed by Max pooling 2x2, followed by Dropout 
     4) Layer conv2 has 64 feature maps, 5x5 each, stride = 1, TEST padding = 'valid' (default) / 'same'
@@ -87,26 +81,54 @@ cnn.add(Flatten())
 cnn.add(Dense(fc_nodes, activation="relu", name="fully_connected"))
 #cnn.add(BatchNormalization())
 cnn.add(Dropout(dropout))
+
 cnn.add(Dense(10, activation="softmax", name="output"))
+
+print("Number of layers is {}".format(len(cnn.layers)))
+for l in cnn.layers:
+    if l.name != "fully_connected": # 1st training stage: train only the weights of the fc layer, "freeze" the rest
+        l.trainable = False
 
 # retrieve the encoder (weights) from the saved autoencoder model
 #cnn.load_weights(args.model, by_name=True)
 
 # compile with Root Mean Square optimizer and Cross Entropy Cost
-#model.compile(loss="categorical_crossentropy", optimizer="rmsprop", metrics=["accuracy"]) # optimizer="adam"
+#cnn.compile(loss="categorical_crossentropy", optimizer="rmsprop", metrics=["accuracy"]) # optimizer="adam"
+
 
 # train cnn
-#ep    = int(input("> Enter training epochs: "))
-#batch = int(input("> Enter training batch size: "))
-#cnn.fit(trainset, trainlabels, epochs=ep, batch_size=batch)
-
-# model.evaluate()
-
-# calculate accuracy of cnn on test set
-#result = cnn.predict(testset)
+#option = -1
+#while option == 1:
+#    ep    = int(input("> Enter training epochs: "))
+#    batch = int(input("> Enter training batch size: "))
 #
-#cnt = 0
-#for i in testset_size:
-#    if result[i] == testlabels[i]:
-#        cnt += 1
-#print("CNN Test Accuracy = %f" %(cnt/len(result)))
+#    cnn.fit(trainset, trainlabels, batch_size=batch, epochs=ep)
+#    for l in cnn.layers:
+#       l.trainable = True # 2nd training stage: train the entire network
+#
+#    re-compile the cnn and repeat the training
+#    cnn.compile(loss="categorical_crossentropy", optimizer="rmsprop", metrics=["accuracy"])
+#    history = cnn.fit(trainset, trainlabels, batch_size=batch, epochs=ep)
+#
+#    print("""Training was completed. You now have the following options:
+#            1. Repeat the training process with different number of epochs and/or batch size
+#            2. Plot the accuracy and loss graphs with respect to the hyperparameters chosen and other evaluation metrics
+#            3. Classify test set images (using other hyperparams????)
+#            """)
+#    option = int(input("> Enter the corresponding number: "))
+#    if option < 1 or option > 3:
+#        die("\nInvalid option!\n", -2)
+#
+## plot accuracy, loss
+#if option == 2:
+#    # model.evaluate() ????
+#
+## classification
+#else:
+#    y_pred = cnn.predict(testset) # it also has a batch_size argument
+#    
+#    cnt = 0
+#    for i in testset_size:
+#        if y_pred[i] == testlabels[i]:
+#            cnt += 1
+#    print("CNN Test Accuracy = %f" %(cnt/len(result)))
