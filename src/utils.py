@@ -1,5 +1,6 @@
 import numpy as np
 import struct
+import sys
 
 # assuming MNIST dataset file format (big endian)
 def dataset_reader(path):
@@ -19,3 +20,7 @@ def labels_reader(path):
     f.close()
 
     return labels
+
+def die(error_message, error_code):
+    print(error_message, file=sys.stderr)
+    sys.exit(error_code)
