@@ -6,10 +6,74 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
-from keras.layers import Conv2D, MaxiPooling2D
+from utils import dataset_reader
+from keras.layers import layers
 from sklearn.model_selection import train_test_split
-from keras.models import load_model
 
+
+
+class Autoencoder():
+
+    def __init__(self, dataset, dims, epochs, batch_size, n_filters, filter_size, n_layers):
+        self.dataset = dataset
+        self.rows = dims[0]
+        self.cols = dims[1]
+
+        # Hyperparemeters
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.n_filters = n_filters
+        self.filter_size = filter_size
+        self.n_layers = n_layers
+
+        self.autoencoder = None
+
+
+    def split_dataset(self, testSize, randomState):
+        # training data must be split into a training set and a validation set
+        (trainSet, _), (testSet, _) = train_test_split(self.dataset, self.dataset, test_size=testSize, random_state=randomState)
+        self.trainSet = trainSet
+        self.testSet = testSet
+
+
+    def reshape(self):
+        
+        if ((self.trainSet == None) or (self.testSet == None)):
+            # we have to assing trainSet and testSet first in order to do the reshaping
+            # apply split_dataset method before reshaping otherwise trainSet and testSet have "None" value
+            # TODO::error msg and exiting
+            pass
+
+        x_train = self.trainSet.astype('float32') / 255.
+        x_test = self.testSet.astype('float32') / 255.
+
+        self.trainSet = np.reshape(x_train, (len(x_train), self.rows, self.cols, 1))
+        self.testSet = np.reshape(x_test, (len(x_test), self.rows, self.cols, 1))
+
+
+    def encoder(self, input_img):
+        filters = self.n_filters
+        
+        conv = layers.Conv2D(filters, kernel_size=self.filter_size, activation='relu', padding='same', name="conv1")(input_img)
+        conv = layers.BatchNormalization(name="batch1")(conv)
+        conv = layers.MaxPooling2D(pool_size=(3,3), padding="same", name="pool1")(conv)
+
+        for i in range(1, self.n_layers):
+            filters *= 2
+            conv = layers.Conv2D(filters, kernel_size=self.filter_size, activation='relu', padding='same', name="conv"+str(i+1))(conv)
+            conv = layers.BatchNormalization(name="batch"+str(i+1))(conv)
+            conv = layers.MaxPooling2D(pool_size=(3,3), padding="same", name="pool"+str(i+1))(conv)
+
+
+        return conv
+
+
+    def decoder(self):
+        pass
+
+
+    def compile_model(self):
+        pass
 
 
 if __name__ == '__main__':
@@ -26,56 +90,18 @@ if __name__ == '__main__':
         print("\n[+] Error: This dataset file does not exist\n\nExiting..")
         sys.exit(-1)
 
+
     # read the first 16 bytes (magic_number, number_of_images, rows, columns)
-    with open(dataset, "rb") as f:
-        train = f.read()
-        images_n = int.from_bytes(train[4:8], byteorder='big')
-        print("Number of images to train {}". format(images_n))
-        rows = int.from_bytes(train[8:12], byteorder='big')
-        print("Number of rows: {}". format(rows))
-        cols = int.from_bytes(train[12:16], byteorder='big')
-        print("Number of columns: {}". format(cols))
+    dataset, _, rows, cols = dataset_reader(dataset)
+    dims = (rows, cols)
 
-        # create np.ndarray for every 784 (rows * cols) pixels (maybe well change that)
-        # append each np.ndarray in a list
-        # efficient way to read a binary file and convert it into np.ndarray
-        dt = np.dtype(np.uint8)
-        offset = 16
-        trainImages = []
-        for i in range(images_n):
-            img = np.frombuffer(train[offset:(rows*cols)+offset], dt)
-            # reshape image into 2d np.array
-            img = np.reshape(img, (-1, cols))
-            trainImages.append(img)
-            offset += rows * cols
+    testSize = 0.2
+    randomState = 13
 
+    autoencoder = Autoencoder(dataset, dims)
+    autoencoder.split_dataset(testSize, randomState)
+    autoencoder.reshape()
 
-    """
-    We'll discuss these shits
-    Hyperparameters:
-    number_of_filters
-    filter_size
-    number_of_layers
-    number_of_epochs
-    batch_size
-    learning_rate
-    """
+    input_img = keras.Input(shape(rows, cols, 1))
+    encoded_img = autoencoder.encoder(input_img)
 
-    # training data must be split into a training set and a validation set
-    train_x, valid_x, train_ground, valid_ground = train_test_split(trainImages, trainImages, test_size=0.2, random_state=13)
-    if (train_x[0].all == train_ground[0].all):
-        print("same")
-
-    # plot first image (just to check if everything's correct)
-    # plt.imshow(train_x[0])
-    # plt.show()
-    # after plotting everything's is perfect!
-
-    # we have to convert nparray to tensor
-    # tensor = tf.convert_to_tensor(train_x[0], dtype=tf.float32)
-    # then we have to reshape it in 4dims (-1, rows, cols, initial_number_of_filters (1))
-    # arg = tf.reshape(tensor, [-1, rows, cols, 1])
-    # apply a conv2d layer
-    # conv1 = Conv2D(32, kernel_size = 3, activation='relu', padding='same')(arg)
-    # not sure if this is correct!!
-    # print(conv1)

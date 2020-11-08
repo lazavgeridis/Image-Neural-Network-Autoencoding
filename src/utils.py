@@ -9,7 +9,7 @@ def dataset_reader(path):
     data = data.reshape((size, rows, cols))
     f.close()
 
-    return data
+    return (data, size, rows, cols)
 
 # assuming MNIST labels file format (big endian)
 def labels_reader(path):

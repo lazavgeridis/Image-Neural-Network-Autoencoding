@@ -1,5 +1,6 @@
 from keras.layers import Conv2D, MaxPool2D, Flatten, Dense, Dropout, BatchNormalization
 from keras.models import Sequential
+from keras.utils.np_utils import to_categorical
 from os.path import exists
 from utils import *
 import numpy as np
