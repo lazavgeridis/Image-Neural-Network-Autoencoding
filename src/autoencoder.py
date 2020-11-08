@@ -61,8 +61,8 @@ class Autoencoder():
             conv = layers.MaxPooling2D(pool_size=(2,2), padding='same', name='pool'+str(i+1))(conv)
 
         filters *= 2
-        conv = layers.Conv2D(filters, kernel_size=self.filter_size, activation='relu', padding='same', name='conv4')(conv)
-        encoded = layers.BatchNormalization(name='batch4')(conv)
+        conv = layers.Conv2D(filters, kernel_size=self.filter_size, activation='relu', padding='same', name='conv3')(conv)
+        encoded = layers.BatchNormalization(name='batch3')(conv)
 
         return (encoded, filters)
 
@@ -70,17 +70,17 @@ class Autoencoder():
     def decoder(self, encoded, filters):
         conv = layers.Conv2D(filters, kernel_size=self.filter_size, activation='relu', padding='same')(encoded)
         conv = layers.BatchNormalization()(conv)
-        conv = layers.UpSampling2D((2,2))(conv)
 
         for _ in range(1, 2):
             filters /= 2
             conv = layers.Conv2D(filters, kernel_size=self.filter_size, activation='relu', padding='same')(conv)
             conv = layers.BatchNormalization()(conv)
             conv = layers.UpSampling2D((2,2))(conv)
-        
+
         filters /= 2
         conv = layers.Conv2D(filters, kernel_size=self.filter_size, activation='relu', padding='same')(conv)
         conv = layers.BatchNormalization()(conv)
+        conv = layers.UpSampling2D((2,2))(conv)
 
         return layers.Conv2D(1, kernel_size=self.filter_size, activation='sigmoid', padding='same')(conv)
 
