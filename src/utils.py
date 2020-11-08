@@ -24,3 +24,11 @@ def labels_reader(path):
 def die(error_message, error_code):
     print(error_message, file=sys.stderr)
     sys.exit(error_code)
+
+
+def ask_for_hyperparameters():
+    epochs = int(input("> Enter training epochs: "))
+    batch_size = int(input("> Enter training batch size: "))
+    kernel_size = int(input("> Enter kernel size: "))
+    
+    return (epochs, batch_size, kernel_size)
