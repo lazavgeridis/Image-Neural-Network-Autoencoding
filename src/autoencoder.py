@@ -4,7 +4,6 @@ import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
-import tensorflow as tf
 import keras
 
 from utils import dataset_reader, die, ask_for_hyperparameters
@@ -50,45 +49,45 @@ class Autoencoder():
 
     def encoder(self, input_img):
         filters = self.n_filters
-        conv = layers.Conv2D(filters, kernel_size=self.filter_size, activation='relu', padding='same', name='conv1')(input_img)
-        conv = layers.BatchNormalization(name='batch1')(conv)
+        conv = layers.Conv2D(filters, kernel_size=self.filter_size, activation='relu', kernel_initializer='he_uniform', padding='same', name='conv1')(input_img)
+        # conv = layers.BatchNormalization(name='batch1')(conv)
         conv = layers.MaxPooling2D(pool_size=(2,2), padding='same', name='pool1')(conv)
 
-        for i in range(1, 2):
-            filters *= 2
-            conv = layers.Conv2D(filters, kernel_size=self.filter_size, activation='relu', padding='same', name='conv'+str(i+1))(conv)
-            conv = layers.BatchNormalization(name='batch'+str(i+1))(conv)
-            conv = layers.MaxPooling2D(pool_size=(2,2), padding='same', name='pool'+str(i+1))(conv)
+        filters /= 2
+        conv = layers.Conv2D(filters, kernel_size=self.filter_size, activation='relu', kernel_initializer='he_uniform', padding='same', name='conv2')(conv)
+        # conv = layers.BatchNormalization(name='batch2')(conv)
+        conv = layers.MaxPooling2D(pool_size=(2,2), padding='same', name='pool2')(conv)
 
-        filters *= 2
-        conv = layers.Conv2D(filters, kernel_size=self.filter_size, activation='relu', padding='same', name='conv3')(conv)
-        encoded = layers.BatchNormalization(name='batch3')(conv)
+        # filters /= 2
+        conv = layers.Conv2D(filters, kernel_size=self.filter_size, activation='relu', kernel_initializer='he_uniform', padding='same', name='conv3')(conv)
+        # encoded = layers.BatchNormalization(name='batch3')(conv)
+        conv = layers.MaxPooling2D(pool_size=(2,2), padding='same', name='pool3')(conv)
 
-        return (encoded, filters)
+        return (conv, filters)
 
 
     def decoder(self, encoded, filters):
-        conv = layers.Conv2D(filters, kernel_size=self.filter_size, activation='relu', padding='same')(encoded)
-        conv = layers.BatchNormalization()(conv)
+        conv = layers.Conv2D(filters, kernel_size=self.filter_size, activation='relu', kernel_initializer='he_uniform', padding='same')(encoded)
+        # conv = layers.BatchNormalization()(conv)
+        conv = layers.UpSampling2D((2, 2))(conv)
 
-        for _ in range(1, 2):
-            filters /= 2
-            conv = layers.Conv2D(filters, kernel_size=self.filter_size, activation='relu', padding='same')(conv)
-            conv = layers.BatchNormalization()(conv)
-            conv = layers.UpSampling2D((2,2))(conv)
-
-        filters /= 2
-        conv = layers.Conv2D(filters, kernel_size=self.filter_size, activation='relu', padding='same')(conv)
-        conv = layers.BatchNormalization()(conv)
+        # filters *= 2
+        conv = layers.Conv2D(filters, kernel_size=self.filter_size, activation='relu', kernel_initializer='he_uniform', padding='same')(conv)
+        # conv = layers.BatchNormalization()(conv)
         conv = layers.UpSampling2D((2,2))(conv)
 
-        return layers.Conv2D(1, kernel_size=self.filter_size, activation='sigmoid', padding='same')(conv)
+        filters *= 2
+        conv = layers.Conv2D(filters, kernel_size=self.filter_size, activation='relu', kernel_initializer='he_uniform')(conv)
+        # conv = layers.BatchNormalization()(conv)
+        conv = layers.UpSampling2D((2,2))(conv)
+
+        return layers.Conv2D(1, kernel_size=self.filter_size, activation='sigmoid', kernel_initializer='he_uniform', padding='same')(conv)
 
 
     def compile_model(self, input_img, decoded):
         self.autoencoder = keras.Model(input_img, decoded)
         print(self.autoencoder.summary())
-        opt = keras.optimizers.RMSprop(learning_rate=0.1)
+        opt = keras.optimizers.Adam(learning_rate=0.001)
         self.autoencoder.compile(optimizer=opt, loss='mean_squared_error', metrics=["accuracy"])
 
 
@@ -101,7 +100,7 @@ class Autoencoder():
         self.autoencoder.save_weights('autoencoder.h5')
 
 
-def reconstructed_digits(autoencoder, x_test):
+def plot_reconstructed_digits(autoencoder, x_test):
     decoded_imgs = autoencoder.predict(x_test)
 
     n = 10
@@ -144,7 +143,7 @@ if __name__ == '__main__':
     dims = (rows, cols)
 
     testSize = 0.2
-    n_filters = 32
+    n_filters = 16
     epochs, batch_size, filter_size = ask_for_hyperparameters()
 
 
@@ -157,6 +156,6 @@ if __name__ == '__main__':
     decoded = autoencoder.decoder(encoded, filters)
     autoencoder.compile_model(input_img, decoded)
     autoencoder.train_model()
-    reconstructed_digits(autoencoder.autoencoder, autoencoder.testSet)
+    plot_reconstructed_digits(autoencoder.autoencoder, autoencoder.testSet)
     autoencoder.save_weights()
 
