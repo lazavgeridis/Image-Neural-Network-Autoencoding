@@ -30,5 +30,7 @@ def ask_for_hyperparameters():
     epochs = int(input("> Enter training epochs: "))
     batch_size = int(input("> Enter training batch size: "))
     kernel_size = int(input("> Enter kernel size: "))
+    n_filters = int(input("> Enter the number of filters: "))
+    convs_per_layer = int(input("> Enter the number of convolutional nets per layer: "))
     
-    return (epochs, batch_size, kernel_size)
+    return (epochs, batch_size, convs_per_layer, kernel_size, n_filters)
