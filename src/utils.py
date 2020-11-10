@@ -10,7 +10,7 @@ def dataset_reader(path):
     data = data.reshape((size, rows, cols))
     f.close()
 
-    return data
+    return (data, size, rows, cols)
 
 # assuming MNIST labels file format (big endian)
 def labels_reader(path):
@@ -24,3 +24,16 @@ def labels_reader(path):
 def die(error_message, error_code):
     print(error_message, file=sys.stderr)
     sys.exit(error_code)
+
+
+def ask_for_hyperparameters():
+    epochs = int(input("> Enter training epochs: "))
+    batch_size = int(input("> Enter training batch size: "))
+    n_convs = int(input("> Enter the number of convolutional layers: "))
+    convs = []
+    for i in range(n_convs):
+        filts = int(input("> Enter the number of filters for convolutional layer {}: ".format(i+1)))
+        size = int(input("> Enter the filter size for convolutional layer {}: ".format(i+1)))
+        convs.append((filts, size))
+    
+    return (epochs, batch_size, convs)

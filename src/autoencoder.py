@@ -3,12 +3,32 @@ import os.path
 import sys
 
 import matplotlib.pyplot as plt
-import numpy as np
-import tensorflow as tf
-from keras import layers, losses, optimizers, metrics
-from sklearn.model_selection import train_test_split
-from keras.models import load_model
+import keras
 
+from utils import dataset_reader, die, ask_for_hyperparameters
+from cnn_model import Autoencoder
+
+
+def plot_reconstructed_digits(autoencoder, x_test):
+    decoded_imgs = autoencoder.predict(x_test)
+
+    n = 10
+    plt.figure(figsize=(20, 4))
+    for i in range(1, n + 1):
+        # Display original
+        ax = plt.subplot(2, n, i)
+        plt.imshow(x_test[i].reshape(28, 28))
+        plt.gray()
+        ax.get_xaxis().set_visible(False)
+        ax.get_yaxis().set_visible(False)
+
+        # Display reconstruction
+        ax = plt.subplot(2, n, i + n)
+        plt.imshow(decoded_imgs[i].reshape(28, 28))
+        plt.gray()
+        ax.get_xaxis().set_visible(False)
+        ax.get_yaxis().set_visible(False)
+    plt.show()
 
 
 
@@ -22,58 +42,30 @@ if __name__ == '__main__':
 
     # if dataset file exists, otherwise exit
     dataset = args['dataset']
+    # dataset = 'train-images-idx3-ubyte'
     if (os.path.isfile(dataset) == False):
         print("\n[+] Error: This dataset file does not exist\n\nExiting..")
         sys.exit(-1)
 
+
     # read the first 16 bytes (magic_number, number_of_images, rows, columns)
-    with open(dataset, "rb") as f:
-        train = f.read()
-        images_n = int.from_bytes(train[4:8], byteorder='big')
-        print("Number of images to train {}". format(images_n))
-        rows = int.from_bytes(train[8:12], byteorder='big')
-        print("Number of rows: {}". format(rows))
-        cols = int.from_bytes(train[12:16], byteorder='big')
-        print("Number of columns: {}". format(cols))
+    dataset, _, rows, cols = dataset_reader(dataset)
+    dims = (rows, cols)
 
-        # create np.ndarray for every 784 (rows * cols) pixels (maybe well change that)
-        # append each np.ndarray in a list
-        # efficient way to read a binary file and convert it into np.ndarray
-        dt = np.dtype(np.uint8)
-        offset = 16
-        trainImages = []
-        for i in range(images_n):
-            img = np.frombuffer(train[offset:(rows*cols)+offset], dt)
-            # reshape image into 2d np.array
-            img = np.reshape(img, (-1, cols))
-            trainImages.append(img)
-            offset += rows * cols
+    testSize = 0.2
+    epochs, batch_size, convs = ask_for_hyperparameters()
 
+    autoencoder = Autoencoder(dataset, dims, epochs, batch_size, convs)
+    autoencoder.split_dataset(testSize)
+    autoencoder.reshape()
 
-    """
-    We'll discuss these shits
-    Hyperparameters:
-    number_of_filters
-    filter_size
-    number_of_layers
-    number_of_epochs
-    batch_size
-    learning_rate
-    """
+    input_img = keras.Input(shape=(rows, cols, 1))
+    encoded = autoencoder.encoder(input_img)
+    decoded = autoencoder.decoder(encoded)
+    autoencoder.compile_model(input_img, decoded)
+    autoencoder.train_model()
+    # close pop-up window after plotting in order to continue
+    # plot_reconstructed_digits(autoencoder.autoencoder, autoencoder.testSet)
+    path = input("> Give the path where the CNN will be saved: ")
+    autoencoder.save_model(path)
 
-    # training data must be split into a training set and a validation set
-    train_x, valid_x, train_ground, valid_ground = train_test_split(trainImages, trainImages, test_size=0.2, random_state=13)
-
-    # plot first image (just to check if everything's correct)
-    # plt.imshow(train_x[0])
-    # plt.show()
-    # after plotting everything's is perfect!
-
-    # we have to convert nparray to tensor
-    tensor = tf.convert_to_tensor(train_x[0], dtype=tf.float32)
-    # then we have to reshape it in 4dims (-1, rows, cols, initial_number_of_filters (1))
-    arg = tf.reshape(tensor, [-1, rows, cols, 1])
-    # apply a conv2d layer
-    conv1 = tf.keras.layers.Conv2D(32, (3, 3), activation='relu', padding='same')(arg)
-    # not sure if this is correct!!
-    print(conv1)
