@@ -29,8 +29,11 @@ def die(error_message, error_code):
 def ask_for_hyperparameters():
     epochs = int(input("> Enter training epochs: "))
     batch_size = int(input("> Enter training batch size: "))
-    kernel_size = int(input("> Enter kernel size: "))
-    n_filters = int(input("> Enter the number of filters: "))
-    convs_per_layer = int(input("> Enter the number of convolutional nets per layer: "))
+    n_convs = int(input("> Enter the number of convolutional layers: "))
+    convs = []
+    for i in range(n_convs):
+        filts = int(input("> Enter the number of filters for convolutional layer {}: ".format(i+1)))
+        size = int(input("> Enter the filter size for convolutional layer {}: ".format(i+1)))
+        convs.append((filts, size))
     
-    return (epochs, batch_size, convs_per_layer, kernel_size, n_filters)
+    return (epochs, batch_size, convs)
