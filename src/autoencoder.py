@@ -65,7 +65,7 @@ if __name__ == '__main__':
         if (code == '1'):
             autoencoder = cnn_train_simulation()
         if (code == '2'):
-            # autoencoder.plot_loss()
+            autoencoder.plot_loss()
             pass
         elif (code == '3'):
             path = input("> Give the path where the CNN will be saved: ")

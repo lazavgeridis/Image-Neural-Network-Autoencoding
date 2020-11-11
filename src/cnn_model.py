@@ -119,12 +119,23 @@ class Autoencoder():
         self.autoencoder = keras.Model(input_img, decoded)
         print(self.autoencoder.summary())
         opt = keras.optimizers.Adam(learning_rate=0.001)
-        self.autoencoder.compile(optimizer=opt, loss='mean_squared_error', metrics=["accuracy"])
+        self.autoencoder.compile(optimizer=opt, loss='mean_squared_error', metrics=["accuracy", "mse"])
 
 
     def train_model(self):
         annealer = LearningRateScheduler(lambda x: 1e-3 * 0.95 ** x, verbose=0)
-        self.autoencoder.fit(self.trainSet, self.trainSet, batch_size=self.batch_size, epochs=self.epochs, validation_data=(self.testSet, self.testSet), callbacks=[annealer])
+        self.history = self.autoencoder.fit(self.trainSet, self.trainSet, batch_size=self.batch_size, epochs=self.epochs, validation_data=(self.testSet, self.testSet), callbacks=[annealer])
+
+
+    def plot_loss(self):
+        # plot loss
+        plt.plot(self.history.history['loss'])
+        plt.plot(self.history.history['val_loss'])
+        plt.title('Model Loss')
+        plt.ylabel('Loss')
+        plt.xlabel('Epochs')
+        plt.legend(['train', 'test'], loc='upper left')
+        plt.show()
 
 
     def save_model(self, path):
