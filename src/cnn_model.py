@@ -118,8 +118,8 @@ class Autoencoder():
     def compile_model(self, input_img, decoded):
         self.autoencoder = keras.Model(input_img, decoded)
         print(self.autoencoder.summary())
-        opt = keras.optimizers.Adam(learning_rate=0.001)
-        self.autoencoder.compile(optimizer=opt, loss='mean_squared_error', metrics=["accuracy", "mse"])
+        opt = keras.optimizers.RMSprop(learning_rate=0.001, rho=0.9, epsilon=None, decay=0.0)
+        self.autoencoder.compile(optimizer=opt, loss='mean_squared_error', metrics=["accuracy"])
 
 
     def train_model(self):
@@ -134,7 +134,7 @@ class Autoencoder():
         plt.title('Model Loss')
         plt.ylabel('Loss')
         plt.xlabel('Epochs')
-        plt.legend(['train', 'test'], loc='upper left')
+        plt.legend(['train', 'test'], loc='upper right')
         plt.show()
 
 
