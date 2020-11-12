@@ -1,5 +1,5 @@
 from keras.layers import Conv2D, MaxPool2D, Flatten, Dense, Dropout, BatchNormalization
-from keras.models import Sequential
+from keras.models import Sequential, load_model
 from sklearn.model_selection import train_test_split
 from os.path import exists
 from utils import *
@@ -39,11 +39,9 @@ def main():
     
     
     # read files and store the data
-    trainset = dataset_reader(args.d)
-    _, x_dim, y_dim = np.shape(trainset)
+    trainset, _, x_dim, y_dim = dataset_reader(args.d)
     trainlabels = labels_reader(args.dl)
-    testset = dataset_reader(args.t)
-    testset_size, _, _ = np.shape(testset)
+    testset, testset_size, _, _ = dataset_reader(args.t)
     testlabels = labels_reader(args.tl)
     
     # plt.imshow(trainset[0, :, :], cmap='gray')
@@ -58,74 +56,71 @@ def main():
     testset  = testset.reshape(-1, x_dim, y_dim, 1)
 
     # reserve 0.2*training samples for validation
-    x_train, x_val, y_train, y_val = train_test_split(trainset, trainlabels, test_size=0.15)
+    x_train, x_val, y_train, y_val = train_test_split(trainset, trainlabels, test_size=0.2)
 
 
     # CNN Classifier Construction
 
-    """ 1) Input Layer: x_dim * y_dim dimensional data
-        2) Layer conv1 has 32 feature maps, 5x5 each, stride = 1, TEST padding = 'valid' (default) / 'same' 
-        3) Batch normalization, followed by Max pooling 2x2, followed by Dropout 
-        4) Layer conv2 has 64 feature maps, 5x5 each, stride = 1, TEST padding = 'valid' (default) / 'same'
-        5) Batch normalization, followed by Max pooling 2x2, followed by Dropout 
-        6) Fully Connected layer with _ nodes
+    """ 6) Fully Connected layer with _ nodes
         7) Dropout
         8) Output layer with softmax
     """
        
-    cnn = Sequential()
-    
-    cnn.add(Conv2D(32, kernel_size=5, activation="relu", input_shape=(x_dim, y_dim, 1), name="conv1"))
-    cnn.add(BatchNormalization())
-    cnn.add(MaxPool2D())
-    cnn.add(Dropout(DROPOUT))
-    
-    cnn.add(Conv2D(64, kernel_size=5, activation="relu", name="conv2"))
-    cnn.add(BatchNormalization())
-    cnn.add(MaxPool2D())
-    cnn.add(Dropout(DROPOUT))
-    
-    cnn.add(Flatten())
-    cnn.add(Dense(FC_NODES, activation="relu", name="fully_connected"))
-    #cnn.add(BatchNormalization())
-    cnn.add(Dropout(DROPOUT))
-    
-    cnn.add(Dense(10, activation="softmax", name="output"))
-    
+    ae = load_model(args.model)
+    print("Number of layers in autoencoder is {}".format(len(ae.layers)))
+    for l in ae.layers:
+        print(l.name, l.trainable)
 
-    print("Number of layers is {}".format(len(cnn.layers)))
-    for l in cnn.layers:
+    cnn_classifier = Sequential()
+
+    for i in range(0, len(ae.layers)):
+        if ae.layers[index].name == "conv1d":
+            break
+        cnn_classifier.add(ae.get_layer(index=i))
+        # after each max pooling layer add a dropout layer
+        if ae.layers[ind].name[:4] == "pool":
+            cnn_classifier.add(Dropout(DROPOUT))
+        
+    # Now our cnn classifier stores only the encoder architecture
+    # Add: Flatten - Dense / Fully Connected - Dropout - Output (softmax)
+    cnn_classifier.add(Flatten())
+    cnn_classifier.add(Dense(FC_NODES, activation="relu", name="fully_connected"))
+    #cnn.add(BatchNormalization())
+    cnn_classifier.add(Dropout(DROPOUT))
+    
+    cnn_classifier.add(Dense(10, activation="softmax", name="output"))
+
+    print(cnn_classifier.summary())
+    
+    for l in cnn_classifier.layers:
         if l.name != "fully_connected": # 1st training stage: train only the weights of the fc layer, "freeze" the rest
             l.trainable = False
     
-    # retrieve the encoder (weights) from the saved autoencoder model
-    #cnn.load_weights(args.model, by_name=True)
-    
     # compile with Root Mean Square optimizer and Cross Entropy Cost
-    cnn.compile(loss=keras.losses.SparseCategoricalCrossEntropy(), 
-                optimizer=keras.optimizers.RMSprop(learning_rate=1e-3), 
-                metrics=[keras.metrics.SparseCategoricalAccuracy()])       # optimizer=keras.optimizers.Adam()
+    cnn_classifier.compile(loss=keras.losses.SparseCategoricalCrossentropy(), 
+                            optimizer=keras.optimizers.RMSprop(learning_rate=1e-3), 
+                            metrics=[keras.metrics.SparseCategoricalAccuracy()])       # optimizer=keras.optimizers.Adam()
     
-    # train cnn
-    option = -1
+    # Train CNN 
+    option = 1
     while option == 1:
         ep    = int(input("> Enter training epochs: "))
         batch = int(input("> Enter training batch size: "))
     
-        print("\nTraining Stage 1: Training only the Fully-Conncted layer's weights...")
-        history = cnn.fit(x_train, y_train, batch_size=batch, epochs=ep, validation_data=(x_val, y_val))
+        print("\nTraining Stage 1: Training only the Fully-Connected layer's weights...")
+        history1 = cnn_classifier.fit(x_train, y_train, batch_size=batch, epochs=ep, validation_data=(x_val, y_val))
         print("Done!\n")
 
-        for l in cnn.layers:
+        for l in cnn_classifier.layers:
            l.trainable = True # 2nd training stage: train the entire network
     
         # re-compile the cnn and repeat the training
-        cnn.compile(loss=keras.losses.SparseCategoricalCrossEntropy(), 
-                    optimizer=keras.optimizers.RMSprop(learning_rate=1e-3), 
-                    metrics=[keras.metrics.])       # optimizer=keras.optimizers.Adam()
+        cnn_classifier.compile(loss=keras.losses.SparseCategoricalCrossentropy(), 
+                                optimizer=keras.optimizers.RMSprop(learning_rate=1e-3), 
+                                metrics=[keras.metrics.])       # optimizer=keras.optimizers.Adam()
 
         print("\nTraining Stage 2: Training the entire network...")
-        history = cnn.fit(x_train, y_train, batch_size=batch, epochs=ep, validation_data=(x_val, y_val))
+        history2 = cnn_classifier.fit(x_train, y_train, batch_size=batch, epochs=ep, validation_data=(x_val, y_val))
         print("Done!\n")
     
         print("""\nTraining was completed. You now have the following options:
@@ -133,18 +128,19 @@ def main():
                 2. Plot the accuracy and loss graphs with respect to the hyperparameters chosen and other evaluation metrics
                 3. Classify test set images (using other hyperparams????)
                 """)
+        
         option = int(input("> Enter the corresponding number: "))
         if option < 1 or option > 3:
             die("\nInvalid option!\n", -2)
     
     # plot accuracy, loss
     if option == 2:
-        results = cnn.evaluate(testset, testlabels, batch_size=batch)
+        results = cnn_classifier.evaluate(testset, testlabels, batch_size=batch)
         print("Test Loss, Test Accuracy:", results)
     
     # classification
     else:
-        y_pred = cnn.predict(testset) # it also has a batch_size argument
+        y_pred = cnn_classifier.predict(testset) # it also has a batch_size argument
         
         cnt = 0
         for i in testset_size:
