@@ -11,6 +11,22 @@ from keras.callbacks import LearningRateScheduler
 from utils import die
 
 
+def split_dataset(dataset, testSize, randomState=13):
+    trainSet, _, testSet, _ = train_test_split(dataset, dataset, test_size=testSize, random_state=randomState)
+    
+    return (trainSet, testSet)
+
+
+def reshape(trainSet, testSet, rows, cols):
+    x_train = trainSet.astype('float32') / 255.
+    x_test = testSet.astype('float32') / 255.
+
+    trainSet = np.reshape(x_train, (len(x_train), rows, cols, 1))
+    testSet = np.reshape(x_test, (len(x_test), rows, cols, 1))
+
+    return (trainSet, testSet)
+
+
 class Autoencoder():
 
     def __init__(self, dataset, dims, epochs, batch_size, convs):
@@ -26,23 +42,14 @@ class Autoencoder():
         self.autoencoder = None
 
 
-    def split_dataset(self, testSize, randomState=13):
+    def _split_dataset(self, testSize, randomState=13):
         # training data must be split into a training set and a validation set
-        self.trainSet, _, self.testSet, _ = train_test_split(self.dataset, self.dataset, test_size=testSize, random_state=randomState)
+        self.trainSet, self.testSet = split_dataset(self.dataset, testSize, randomState)
 
 
-    def reshape(self):   
-        if ((self.trainSet.any() == None) or (self.testSet.any() == None)):
-            # we have to assing trainSet and testSet first in order to do the reshaping
-            # apply split_dataset method before reshaping otherwise trainSet and testSet have "None" value
-            die("\nApply split_dataset method before reshaping\nExiting..\n", -1)
-
+    def _reshape(self):
         # normalization
-        x_train = self.trainSet.astype('float32') / 255.
-        x_test = self.testSet.astype('float32') / 255.
-
-        self.trainSet = np.reshape(x_train, (len(x_train), self.rows, self.cols, 1))
-        self.testSet = np.reshape(x_test, (len(x_test), self.rows, self.cols, 1))
+        self.trainSet, self.testSet = reshape(self.dataset, self.testSet, self.rows, self.cols)
 
 
     def __add_conv_layers(self, first_input, conv, ith_conv, dec=False):
@@ -125,17 +132,6 @@ class Autoencoder():
     def train_model(self):
         annealer = LearningRateScheduler(lambda x: 1e-3 * 0.95 ** x, verbose=0)
         self.history = self.autoencoder.fit(self.trainSet, self.trainSet, batch_size=self.batch_size, epochs=self.epochs, validation_data=(self.testSet, self.testSet), callbacks=[annealer])
-
-
-    def plot_loss(self):
-        # plot loss
-        plt.plot(self.history.history['loss'])
-        plt.plot(self.history.history['val_loss'])
-        plt.title('Model Loss')
-        plt.ylabel('Loss')
-        plt.xlabel('Epochs')
-        plt.legend(['train', 'test'], loc='upper right')
-        plt.show()
 
 
     def save_model(self, path):

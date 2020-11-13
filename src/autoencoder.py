@@ -6,15 +6,27 @@ import matplotlib.pyplot as plt
 import keras
 
 from utils import dataset_reader, die, ask_for_hyperparameters
-from cnn_model import Autoencoder
+from cnn_model import Autoencoder, split_dataset, reshape
+
+
+
+def plot_loss(hist):
+    # plot loss
+    plt.plot(hist.history['loss'])
+    plt.plot(hist.history['val_loss'])
+    plt.title('Model Loss')
+    plt.ylabel('Loss')
+    plt.xlabel('Epochs')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.show()
 
 
 def cnn_train_simulation():
     epochs, batch_size, convs = ask_for_hyperparameters()
 
     autoencoder = Autoencoder(dataset, dims, epochs, batch_size, convs)
-    autoencoder.split_dataset(testSize)
-    autoencoder.reshape()
+    autoencoder._split_dataset(testSize)
+    autoencoder._reshape()
 
     input_img = keras.Input(shape=(rows, cols, 1))
     encoded = autoencoder.encoder(input_img)
@@ -23,6 +35,19 @@ def cnn_train_simulation():
     autoencoder.train_model()
 
     return autoencoder
+
+
+def fit_pretrained(modelPath, dataset, rows, cols, testSize):
+    epochs = int(input("> Enter training epochs: "))
+    batch_size = int(input("> Enter training batch size: "))
+
+    trainSet, testSet = split_dataset(dataset, testSize)
+    trainSet, testSet = reshape(trainSet, testSet, rows, cols)
+
+    model = keras.models.load_model(modelPath)
+    print(model.summary())
+    hist = model.fit(trainSet, trainSet, batch_size=batch_size, epochs=epochs, validation_data=(testSet, testSet), verbose=2)
+    plot_loss(hist)
 
 
 def menu():
@@ -48,8 +73,7 @@ if __name__ == '__main__':
     dataset = args['dataset']
     # dataset = 'train-images-idx3-ubyte'
     if (os.path.isfile(dataset) == False):
-        print("\n[+] Error: This dataset file does not exist\n\nExiting..")
-        sys.exit(-1)
+        die("\n[+] Error: This dataset file does not exist\n\nExiting..", -1)
 
 
     # read the first 16 bytes (magic_number, number_of_images, rows, columns)
@@ -58,15 +82,21 @@ if __name__ == '__main__':
 
     testSize = 0.2
 
-    autoencoder = cnn_train_simulation()
+    check = input("Do you want to load a pretrained cnn model? [y/n]: ")
+    if (check == 'y'):
+        modelPath = input("> Give the path in which the cnn model is located: ")
+        if (os.path.isfile(modelPath) == False):
+            die("\n[+] Error: File \"{}\" does not exist!\n".format(modelPath), -1)
+        fit_pretrained(modelPath, dataset, rows, cols, testSize)
+    else:
+        autoencoder = cnn_train_simulation()
 
     while (True):
         code = menu()
         if (code == '1'):
             autoencoder = cnn_train_simulation()
         if (code == '2'):
-            autoencoder.plot_loss()
-            pass
+            plot_loss(autoencoder.history)
         elif (code == '3'):
             path = input("> Give the path where the CNN will be saved: ")
             autoencoder.save_model(path)
