@@ -1,6 +1,9 @@
 import numpy as np
 import struct
 import sys
+import argparse
+from os.path import exists
+
 
 # assuming MNIST dataset file format (big endian)
 def dataset_reader(path):
@@ -12,6 +15,7 @@ def dataset_reader(path):
 
     return (data, size, rows, cols)
 
+
 # assuming MNIST labels file format (big endian)
 def labels_reader(path):
     f = open(path, 'rb')
@@ -20,6 +24,7 @@ def labels_reader(path):
     f.close()
 
     return labels
+
 
 def die(error_message, error_code):
     print(error_message, file=sys.stderr)
@@ -37,3 +42,31 @@ def ask_for_hyperparameters():
         convs.append((filts, size))
     
     return (epochs, batch_size, convs)
+
+
+def classification_parseargs():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-d", help="path to file containing the training set samples")
+    parser.add_argument("-dl", help="path to file containing the training set labels")
+    parser.add_argument("-t", help="path to file containing the test set samples")
+    parser.add_argument("-tl", help="path to file containing the test set labels")
+    parser.add_argument("-model", help="path to autoencoder model")
+    args = parser.parse_args()
+     
+    # check if the file arguments exist
+    if not exists(args.d):
+        die("\nFile \"{}\" does not exist!\n".format(args.d), -1)
+     
+    if not exists(args.dl):
+        die("\nFile \"{}\" does not exist!\n".format(args.dl), -1)
+     
+    if not exists(args.t):
+        die("\nFile \"{}\" does not exist!\n".format(args.t), -1)
+     
+    if not exists(args.tl):
+        die("\nFile \"{}\" does not exist!\n".format(args.tl), -1)
+     
+    if not exists(args.model):
+        die("\nFile \"{}\" does not exist!\n".format(args.model), -1)
+
+    return args
