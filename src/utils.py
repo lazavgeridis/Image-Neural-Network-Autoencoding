@@ -1,7 +1,9 @@
-import numpy as np
 import struct
 import sys
 import argparse
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.metrics import classification_report
 from os.path import exists
 
 
@@ -70,3 +72,103 @@ def classification_parseargs():
         die("\nFile \"{}\" does not exist!\n".format(args.model), -1)
 
     return args
+
+
+# models is a list of tuples
+# each tuple : (model, fully_connected layer nodes, epochs trained, batch size used, test accuracy)
+def plot_nn2(val_images, val_labels, models, test_labels, predictions):
+    nodes = set()
+    epoch = set()
+    batch = set()
+    acc = []
+    val_acc = []
+    loss = []
+    val_loss = []
+
+    for i, item in enumerate(models):
+        model, fc_nodes, epochs, batch_size, _ = item
+        nodes.add(fc_nodes)
+        epoch.add(epochs)
+        batch.add(batch_size)
+        acc.append(model.train_history.history["sparse_categorical_accuracy"][epochs - 1])
+        val_acc.append(model.train_history.history["val_sparse_categorical_accuracy"][epochs - 1])
+        loss.append(model.train_history.history["loss"][epochs - 1])
+        val_loss.append(model.train_history.history["val_loss"][epochs - 1])
+
+        print("\nCNN Classifier Model {}: Fully-Connected nodes={}, Epochs={}, Batch Size={}".format(i + 1, fc_nodes, epochs, batch_size))
+        print(classification_report(predictions[i], test_labels, digits=3))
+
+    # in order to plot accuracy and loss, we need only one variable hyperparameter i.e one of fc_nodes, epochs, batch size
+    # if the other 2 hyperparameters were kept fixed during training, then we can successfully plot
+    # if the other 2 hyperparameters were not kept fixed, then loss and accuraracy cannot be plotted
+    variable = 0
+    if len(nodes) > 1:
+        variable += 1
+    if len(epoch) > 1:
+        variable += 1
+    if len(batch) > 1:
+        variable += 1
+
+    if variable != 1:
+        die("\nCould not plot accuracy and loss graphs!\n", -3)
+
+    # plot accuracy, loss with respect to ...
+    fig2, ((ax3, ax4)) = plt.subplots(nrows=1, ncols=2)
+    fig2.tight_layout()
+
+    if len(nodes) > 1:
+        l = list(nodes)
+        variable = "fc nodes"
+    elif len(epoch) > 1:
+        l = list(epoch)
+        variable = "epochs"
+    else:
+        l = list(batch)
+        variable = "batch size"
+
+    ax3.plot(l, acc)
+    ax3.plot(l, val_acc)
+    ax3.set_title("Training Curve")
+    ax3.set_ylabel("accuracy")
+    ax3.set_xlabel("{}".format(variable))
+    ax3.legend(["train accuracy", "val accuracy"], loc="lower right")
+
+    ax4.plot(l, loss)
+    ax4.plot(l, val_loss)
+    ax4.set_title("Training Curve") 
+    ax4.set_ylabel("loss")
+    ax4.set_xlabel("{}".format(variable))
+    ax4.legend(["train loss", "val loss"], loc="upper right")
+
+    fig2.subplots_adjust(wspace=0.5)
+    plt.show()
+
+
+def show_models(models):
+    for i, item in enumerate(models):
+        _, fc_nodes, epochs, batch_size, accuracy = item
+        print("\nCNN Model {}: Fully-Connected Layer's nodes={}   Epochs={}   Batch Size={}   Accuracy={}"
+                                                            .format(i + 1, fc_nodes, epochs, batch_size, accuracy))
+        print("-" * 100)
+
+
+def visualize_predictions(test_images, test_labels, size, pred_labels):
+    true  = 0
+    false = 0
+
+    for ind in range(size):
+        if pred_labels[ind] != test_labels[ind] and false != 10:
+            false += 1
+            plt.title("Predicted={}, True={}".format(pred_labels[ind], test_labels[ind]))
+            img = test_images[ind].reshape(28, 28)
+            plt.imshow(img, cmap='gray')
+            plt.show()
+        elif pred_labels[ind] == test_labels[ind] and true != 10:
+            true += 1
+            plt.title("Predicted={}, True={}".format(pred_labels[ind], test_labels[ind]))
+            img = test_images[ind].reshape(28, 28)
+            plt.imshow(img, cmap='gray')
+            plt.show()
+            
+        if true == 10 and false == 10:
+            break
