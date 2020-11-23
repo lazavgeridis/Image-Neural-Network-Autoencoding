@@ -3,6 +3,9 @@ from utils import *
 from cnn_classifier import *
 
 
+CHANNELS = 1
+
+
 def main():
     args = classification_parseargs()
     
@@ -16,32 +19,38 @@ def main():
     trainset = trainset / 255.0
     testset  = testset / 255.0
 
-    # reshape the data, tensors of shape (size, rows, cols, inchannel)
-    trainset = trainset.reshape(-1, x_dim, y_dim, 1)
-    testset  = testset.reshape(-1, x_dim, y_dim, 1)
+    # reshape the data into tensors of shape (size, rows, cols, inchannel)
+    trainset = trainset.reshape(-1, x_dim, y_dim, CHANNELS)
+    testset  = testset.reshape(-1, x_dim, y_dim, CHANNELS)
 
     # reserve some training samples for validation
     x_train, x_val, y_train, y_val = train_test_split(trainset, trainlabels, test_size=0.1)
 
-    # CNN Classifier Construction
+    # Load AutoEncoder model from part A
     ae = load_model(args.model)
-    classifier = Classifier(ae)
 
+    # Lists
+    models = []
+    predictions = []
 
-    # Train CNN Classifier 
+    # Construct, train, and evaluate cnn model(s)
     while True:
         fc_nodes = int(input("> Enter number of nodes in fully-connected layer: "))
         ep       = int(input("> Enter training epochs: "))
         batch    = int(input("> Enter training batch size: "))
 
+        classifier = Classifier(ae)
         classifier.add_layers(fc_nodes)
 
         classifier.train(x_train, y_train, x_val, y_val, batch, ep)
+        pred, acc = classifier.test(testset, testlabels, testset_size)
+        models.append( (classifier, fc_nodes, ep, batch, acc) )
+        predictions.append(pred)
 
-        print("""\nTraining was completed. You now have the following options:
-                1. Repeat the training process with different number of: nodes in fully-connected layer, epochs and batch size
+        print("""\nTraining and evaluating the model was completed. You now have the following options:
+                1. Repeat the training process with different number of: nodes in fully-connected layer or epochs or batch size
                 2. Plot accuracy and loss graphs with respect to the hyperparameters and print evaluation scores (precision, recall, f1)
-                3. Classify test set images (using other hyperparams????)
+                3. Visualize model's predictions
                 """)
         
         option = int(input("> Enter the corresponding number: "))
@@ -49,18 +58,26 @@ def main():
             die("\nInvalid option!\n", -2)
         if option != 1:
             break
-        else:
-            # remove the last 4 layers of the model, since user might request 
-            # different number of nodes in the fully-connected layer
-            classifier.remove_layers()
+
 
     # plot accuracy, loss
     if option == 2:
-        classifier.plot_train_curve(x_val, y_val, batch, fc_nodes)
+        plot_nn2(x_val, y_val, models, testlabels, predictions)
 
-    # classification
+
+    # visualize predictions
     else:
-        classifier.test(testset, testlabels, testset_size)
+        # display trained models first 
+        show_models(models)
+        model_ind = int(input("\n> Enter the number corresponding to the model you want to visualize label predictions for: "))
+        if model_ind < 1 or model_ind > len(models):
+            die("\nInvalid option!\n", -2)
+
+        model_ind -= 1
+        m, _, _, _, _ = models[model_ind]
+
+        # visualize some mnist images with their predicted labels
+        visualize_predictions(testset, testlabels, testset_size, predictions[model_ind])
         
 
 if __name__ == '__main__':
