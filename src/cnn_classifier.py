@@ -40,9 +40,10 @@ class Classifier:
         print(self.model.summary())
 
 
-    def train(self, train_images, train_labels, val_images, val_labels, batchsize, num_epochs):
+    def train(self, train_images, train_labels, val_images, val_labels):
+        # 1st training stage: train only the weights of the fc layer, "freeze" the rest
         for l in self.model.layers:
-            if l.name != "fully_connected": # 1st training stage: train only the weights of the fc layer, "freeze" the rest
+            if l.name != "fully_connected": 
                 l.trainable = False
 
         # compile 
@@ -50,32 +51,38 @@ class Classifier:
                             optimizer=Adam(learning_rate=LEARNINGRATE),
                             metrics=[SparseCategoricalAccuracy()])       
 
+        epochs1     = int(input("\n> Enter training epochs for training stage 1: "))
+        minibatch1  = int(input("> Enter training batch size for training stage 1: "))
         print("\nTraining Stage 1: Training only the Fully-Connected layer's weights...")
-        self.model.fit(train_images, train_labels, batch_size=batchsize, epochs=num_epochs, validation_data=(val_images, val_labels))
+        self.model.fit(train_images, train_labels, batch_size=minibatch1, epochs=epochs1, validation_data=(val_images, val_labels))
         print("Done!\n")
 
+        # 2nd training stage: train the entire network
         for l in self.model.layers:
-            l.trainable = True # 2nd training stage: train the entire network
+            l.trainable = True 
 
-        # re-compile the cnn and repeat the training
+        # re-compile the model and repeat training
         self.model.compile(loss=SparseCategoricalCrossentropy(),
                             optimizer=Adam(learning_rate=LEARNINGRATE),
                             metrics=[SparseCategoricalAccuracy()])       
 
+        epochs2     = int(input("> Enter training epochs for training stage 2: "))
+        minibatch2  = int(input("> Enter training batch size for training stage 2: "))
         print("\nTraining Stage 2: Training the entire network...")
-        self.train_history = self.model.fit(train_images, train_labels, batch_size=batchsize, 
-                                        epochs=num_epochs, validation_data=(val_images, val_labels))
+        self.train_history = self.model.fit(train_images, train_labels, batch_size=minibatch2, 
+                                        epochs=epochs2, validation_data=(val_images, val_labels))
         print("Done!\n")
+
+        # we use epochs and batch size of the 2nd training stage for plotting
+        return (epochs2, minibatch2)
 
 
     def test(self, test_images, test_labels, size):
         y_pred1 = self.model.predict(test_images)
         y_pred2 = np.argmax(y_pred1, axis=1)
 
-        cnt = 0
-        for i in range(size):
-            if y_pred2[i] == test_labels[i]:
-                cnt += 1
-        print("\nClassifier Test Accuracy = {}".format(cnt / len(y_pred2)))
+        res = self.model.evaluate(test_images, test_labels)
+        print("\nClassifier Test Accuracy = {}".format(res[1]))
+        print("Classifier Test Loss = {}".format(res[0]))
 
-        return (y_pred2, cnt / len(y_pred2) )
+        return (y_pred2, res[1], res[0])

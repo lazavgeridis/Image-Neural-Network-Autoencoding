@@ -86,7 +86,7 @@ def plot_nn2(val_images, val_labels, models, test_labels, predictions):
     val_loss = []
 
     for i, item in enumerate(models):
-        model, fc_nodes, epochs, batch_size, _ = item
+        model, fc_nodes, epochs, batch_size, _, _ = item
         nodes.add(fc_nodes)
         epoch.add(epochs)
         batch.add(batch_size)
@@ -144,31 +144,39 @@ def plot_nn2(val_images, val_labels, models, test_labels, predictions):
     plt.show()
 
 
+def previous_experiment(experiment):
+    _, fc_nodes, epochs, batch_size, _, _ = experiment
+    print("\nHyperparams used in the previous experiment: fc_nodes={}, epochs={}, batch size={}\n".format(fc_nodes, epochs, batch_size))
+
+
 def show_models(models):
     for i, item in enumerate(models):
-        _, fc_nodes, epochs, batch_size, accuracy = item
-        print("\nCNN Model {}: Fully-Connected Layer's nodes={}   Epochs={}   Batch Size={}   Accuracy={}"
-                                                            .format(i + 1, fc_nodes, epochs, batch_size, accuracy))
-        print("-" * 100)
+        _, fc_nodes, epochs, batch_size, accuracy, loss = item
+        print("\nCNN Model {}: Fully-Connected Layer's nodes={}   Epochs={}   Batch Size={}   Accuracy={:5.3f}   Loss={:5.3f}"
+                                                            .format(i + 1, fc_nodes, epochs, batch_size, accuracy, loss))
+        print("-" * 105)
 
 
 def visualize_predictions(test_images, test_labels, size, pred_labels):
-    true  = 0
-    false = 0
 
-    for ind in range(size):
-        if pred_labels[ind] != test_labels[ind] and false != 10:
-            false += 1
-            plt.title("Predicted={}, True={}".format(pred_labels[ind], test_labels[ind]))
-            img = test_images[ind].reshape(28, 28)
-            plt.imshow(img, cmap='gray')
-            plt.show()
-        elif pred_labels[ind] == test_labels[ind] and true != 10:
-            true += 1
-            plt.title("Predicted={}, True={}".format(pred_labels[ind], test_labels[ind]))
-            img = test_images[ind].reshape(28, 28)
-            plt.imshow(img, cmap='gray')
-            plt.show()
-            
-        if true == 10 and false == 10:
-            break
+    true  = [index for index in range(size) if pred_labels[index] == test_labels[index]]
+    false = [index for index in range(size) if pred_labels[index] != test_labels[index]] 
+
+    print("\nFound {} correct labels".format(len(true)))
+    print("Found {} incorrect labels\n".format(len(false)))
+
+    cnt = 10
+    
+    # show predicted = true
+    for i in range(cnt):
+        plt.title("Predicted={}, True={}".format(pred_labels[true[i]], test_labels[true[i]]))
+        imgtrue = test_images[true[i]].reshape(28, 28)
+        plt.imshow(imgtrue, cmap='gray')
+        plt.show()
+
+   # show predicted != true 
+    for i in range(cnt):
+        plt.title("Predicted={}, True={}".format(pred_labels[false[i]], test_labels[false[i]]))
+        imgfalse = test_images[false[i]].reshape(28, 28)
+        plt.imshow(imgfalse, cmap='gray')
+        plt.show()
