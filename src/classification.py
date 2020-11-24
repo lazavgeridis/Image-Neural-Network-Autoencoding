@@ -35,16 +35,17 @@ def main():
 
     # Construct, train, and evaluate cnn model(s)
     while True:
+        if models:
+            previous_experiment(models[-1])
+
         fc_nodes = int(input("> Enter number of nodes in fully-connected layer: "))
-        ep       = int(input("> Enter training epochs: "))
-        batch    = int(input("> Enter training batch size: "))
 
         classifier = Classifier(ae)
         classifier.add_layers(fc_nodes)
 
-        classifier.train(x_train, y_train, x_val, y_val, batch, ep)
-        pred, acc = classifier.test(testset, testlabels, testset_size)
-        models.append( (classifier, fc_nodes, ep, batch, acc) )
+        epochs, batch_size = classifier.train(x_train, y_train, x_val, y_val)
+        pred, acc, loss = classifier.test(testset, testlabels, testset_size)
+        models.append( (classifier, fc_nodes, epochs, batch_size, acc, loss) )
         predictions.append(pred)
 
         print("""\nTraining and evaluating the model was completed. You now have the following options:
@@ -74,7 +75,6 @@ def main():
             die("\nInvalid option!\n", -2)
 
         model_ind -= 1
-        m, _, _, _, _ = models[model_ind]
 
         # visualize some mnist images with their predicted labels
         visualize_predictions(testset, testlabels, testset_size, predictions[model_ind])
