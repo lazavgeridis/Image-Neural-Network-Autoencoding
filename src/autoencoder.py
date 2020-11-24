@@ -9,16 +9,73 @@ from utils import dataset_reader, die, ask_for_hyperparameters
 from cnn_model import Autoencoder, split_dataset, reshape
 
 
-
+# plot loss for pre-trained model only, no need to plot other hyperparameters
 def plot_loss(hist):
     # plot loss
-    plt.plot(hist.history['loss'])
-    plt.plot(hist.history['val_loss'])
+    plt.plot(hist.history["loss"])
+    plt.plot(hist.history["val_loss"])
     plt.title('Model Loss')
     plt.ylabel('Loss')
     plt.xlabel('Epochs')
     plt.legend(['train', 'test'], loc='upper left')
+    name = input("> Give the path where the plot will be saved: ")
+    plt.savefig(name)
     plt.show()
+
+
+
+def plot_hyperparams(models):
+    conv_layers = set()
+    n_epochs = set()
+    batch = set()
+    loss = []
+    val_loss = []
+
+    for i, item in enumerate(models):
+        model, epochs, batch_size, convs = item
+        conv_layers.add(len(convs))
+        n_epochs.add(epochs)
+        batch.add(batch_size)
+        loss.append(model.history.history["loss"][epochs-1])
+        val_loss.append(model.history.history["val_loss"][epochs-1])
+
+        print("\nCNN Autoencoder Model {}: Convolution Layers={}, Epochs={}, Batch Size={}".format(i + 1, len(convs), epochs, batch_size))
+
+
+    # in order to plot accuracy and loss, we need only one variable hyperparameter i.e one of fc_nodes, epochs, batch size
+    # if the other 2 hyperparameters were kept fixed during training, then we can successfully plot
+    # if the other 2 hyperparameters were not kept fixed, then loss and accuraracy cannot be plotted
+    variable = 0
+    if len(conv_layers) > 1:
+        variable += 1
+    if len(n_epochs) > 1:
+        variable += 1
+    if len(batch) > 1:
+        variable += 1
+
+    if variable != 1:
+        die("\nCould not plot loss graphs!\n", -1)
+
+    if len(conv_layers) > 1:
+        l = list(conv_layers)
+        variable = "Convolutional Layers"
+    elif len(n_epochs) > 1:
+        l = list(n_epochs)
+        variable = "Epochs"
+    else:
+        l = list(batch)
+        variable = "Batch Size"
+
+    plt.plot(l, loss)
+    plt.plot(l, val_loss)
+    plt.title("Training Curve") 
+    plt.ylabel("Loss")
+    plt.xlabel("{}".format(variable))
+    plt.legend(["train_loss", "val_loss"], loc="upper left")
+    name = input("> Give the path where the plot will be saved: ")
+    plt.savefig(name)
+    plt.show()
+
 
 
 def cnn_train_simulation():
@@ -37,6 +94,7 @@ def cnn_train_simulation():
     return autoencoder
 
 
+
 def fit_pretrained(modelPath, dataset, rows, cols, testSize):
     epochs = int(input("> Enter training epochs: "))
     batch_size = int(input("> Enter training batch size: "))
@@ -48,6 +106,7 @@ def fit_pretrained(modelPath, dataset, rows, cols, testSize):
     print(model.summary())
     hist = model.fit(trainSet, trainSet, batch_size=batch_size, epochs=epochs, validation_data=(testSet, testSet), verbose=2)
     plot_loss(hist)
+
 
 
 def menu():
@@ -82,6 +141,8 @@ if __name__ == '__main__':
 
     testSize = 0.2
 
+    models = []
+
     check = input("Do you want to load a pretrained cnn model? [y/n]: ")
     if (check == 'y'):
         modelPath = input("> Give the path in which the cnn model is located: ")
@@ -90,13 +151,18 @@ if __name__ == '__main__':
         fit_pretrained(modelPath, dataset, rows, cols, testSize)
     else:
         autoencoder = cnn_train_simulation()
+        models.append( (autoencoder, autoencoder.epochs, autoencoder.batch_size, autoencoder.convs) )
 
     while (True):
         code = menu()
         if (code == '1'):
             autoencoder = cnn_train_simulation()
+            models.append( (autoencoder, autoencoder.epochs, autoencoder.batch_size, autoencoder.convs) )
         if (code == '2'):
-            plot_loss(autoencoder.history)
+            if (len(models) == 1):
+                plot_loss(autoencoder.history)
+            else:
+                plot_hyperparams(models)
         elif (code == '3'):
             path = input("> Give the path where the CNN will be saved: ")
             autoencoder.save_model(path)
