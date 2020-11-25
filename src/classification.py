@@ -63,7 +63,7 @@ def main():
 
     # plot accuracy, loss
     if option == 2:
-        plot_nn2(x_val, y_val, models, testlabels, predictions)
+        plot_nn2(models, testlabels, predictions)
 
 
     # visualize predictions
@@ -77,7 +77,7 @@ def main():
         model_ind -= 1
 
         # visualize some mnist images with their predicted labels
-        visualize_predictions(testset, testlabels, testset_size, predictions[model_ind])
+        visualize_predictions(testset, testlabels, testset_size, x_dim, y_dim, predictions[model_ind])
         
 
 if __name__ == '__main__':

@@ -86,3 +86,25 @@ class Classifier:
         print("Classifier Test Loss = {}".format(res[0]))
 
         return (y_pred2, res[1], res[0])
+    
+    
+    def plot_acc_loss(self):
+        fig, ((ax1, ax2)) = plt.subplots(nrows=1, ncols=2)
+        fig.tight_layout()
+
+        ax1.plot(self.train_history.history["sparse_categorical_accuracy"])
+        ax1.plot(self.train_history.history["val_sparse_categorical_accuracy"])
+        ax1.set_title("Training Curve")
+        ax1.set_ylabel("accuracy")
+        ax1.set_xlabel("epochs")
+        ax1.legend(["train accuracy", "val accuracy"], loc="lower right")
+
+        ax2.plot(self.train_history.history["loss"])
+        ax2.plot(self.train_history.history["val_loss"])
+        ax2.set_title("Training Curve") 
+        ax2.set_ylabel("loss")
+        ax2.set_xlabel("epochs")
+        ax2.legend(["train loss", "val loss"], loc="upper right")
+
+        fig.subplots_adjust(wspace=0.5)
+        plt.show()
