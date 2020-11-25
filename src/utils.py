@@ -75,8 +75,16 @@ def classification_parseargs():
 
 
 # models is a list of tuples
-# each tuple : (model, fully_connected layer nodes, epochs trained, batch size used, test accuracy)
-def plot_nn2(val_images, val_labels, models, test_labels, predictions):
+# each tuple : (model, fully_connected layer nodes, epochs trained, batch size used, test accuracy, test loss)
+def plot_nn2(models, test_labels, predictions):
+    # in case user trained only one cnn model
+    # plot accuracy and loss wrt #epochs only for this model
+    if len(models) == 1:
+        m, _, _, _, _, _ = models[0] 
+        print(classification_report(predictions[0], test_labels, digits=3))
+        m.plot_acc_loss()
+        return 
+
     nodes = set()
     epoch = set()
     batch = set()
@@ -157,7 +165,7 @@ def show_models(models):
         print("-" * 105)
 
 
-def visualize_predictions(test_images, test_labels, size, pred_labels):
+def visualize_predictions(test_images, test_labels, size, x_dim, y_dim, pred_labels):
 
     true  = [index for index in range(size) if pred_labels[index] == test_labels[index]]
     false = [index for index in range(size) if pred_labels[index] != test_labels[index]] 
@@ -170,13 +178,13 @@ def visualize_predictions(test_images, test_labels, size, pred_labels):
     # show predicted = true
     for i in range(cnt):
         plt.title("Predicted={}, True={}".format(pred_labels[true[i]], test_labels[true[i]]))
-        imgtrue = test_images[true[i]].reshape(28, 28)
+        imgtrue = test_images[true[i]].reshape(x_dim, y_dim)
         plt.imshow(imgtrue, cmap='gray')
         plt.show()
 
    # show predicted != true 
     for i in range(cnt):
         plt.title("Predicted={}, True={}".format(pred_labels[false[i]], test_labels[false[i]]))
-        imgfalse = test_images[false[i]].reshape(28, 28)
+        imgfalse = test_images[false[i]].reshape(x_dim, y_dim)
         plt.imshow(imgfalse, cmap='gray')
         plt.show()
