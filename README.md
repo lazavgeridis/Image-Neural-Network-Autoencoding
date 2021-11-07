@@ -12,6 +12,10 @@ in our classification task.
 The dataset used for both parts of the project was once again [MNIST](http://yann.lecun.com/exdb/mnist/), but this time the labels were also used, 
 in order to measure the accuracy scores of our models.  
 
+Since training Neural Networks without a GPU is admittedly a daunting task, we
+have provided a [Google Colab notebook](https://colab.research.google.com/drive/103OAigB6x5pdXZP7NG99r3OoS9xOT1-_?usp=sharing) 
+where you can experiment with our code.
+
 # Part 1 : Autoencoder
 The user can choose between either loading a pre-trained Autoencoder model and
 re-training or constructing a new Autoencoder model and training from scratch.
@@ -21,7 +25,10 @@ interactively by the user. After training, the user can visualize the
 training/validation loss of each run. The Autoencoder is trained on the MNIST
 training set (60.000 samples), which is split into separate training and validation sets.  
 
-**Note** : The encoder architecture is the exact mirror image of the decoder
+**Note** : The encoder architecture is the exact mirror image of the decoder.
+See below for a sample Autoencoder architecture.
+
+![Screenshot](images/ae_reduce.png)
 
 
 # Part 2 : CNN Classifier
