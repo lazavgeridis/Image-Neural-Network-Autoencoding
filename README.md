@@ -48,11 +48,13 @@ hyperparameter values (nodes in the fc layer, epochs, minibatch size).
 # Execution
 For part 1, the program is executed as:  
 ```
+$ cd src
 $ python autoencoder.py -d ../datasets/train-images-idx3-ubyte
 ```
 
 For part 2, the program is executed as:
 ```
+$ cd src
 $ python classification.py -d ../datasets/train-images-idx3-ubyte 
                            -dl ../datasets/train-labels-idx1-ubyte
                            -t ../datasets/t10k-images-idx3-ubyte
